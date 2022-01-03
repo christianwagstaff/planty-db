@@ -3,3 +3,13 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
+
+  h1 Dynamic Content 
+  
+  p Planty has the following records 
+  
+  ul 
+    li #[strong Plants:] !{data.plant_count}
+    li #[strong Categories:] !{data.category_count}
+
+  
