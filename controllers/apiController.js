@@ -17,6 +17,16 @@ exports.all_plants = (req, res, next) => {
     });
 };
 
+exports.all_categories = (req, res, next) => {
+  Category.find({}).exec((err, results) => {
+    if (err) {
+      return next(err);
+    }
+    // Success so return all results
+    res.json(results);
+  });
+};
+
 // Get details for specific plant
 exports.get_plant_id = (req, res, next) => {
   Plant.findById(req.params.id)
@@ -107,7 +117,58 @@ exports.create_plant = [
           return next(err);
         }
         // Success, send new plant details
-        res.json({ plant });
+        res.json({ msg: "Plant Created Successfully" });
+      });
+    }
+  },
+];
+
+// Create new Category on POST
+exports.create_category = [
+  // Validate and sanitize fields
+  body("name", "Category Name Required").trim().isLength({ min: 1 }).escape(),
+  body("description", "Description is Required")
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+
+  // Process request after validation and sanitization
+  (req, res, next) => {
+    // Extract the validation errors from a request
+    const errors = validationResult(req);
+
+    // create a Category obj with escaped and trimmed data
+    const category = new Category({
+      name: req.body.name,
+      description: req.body.description,
+    });
+
+    if (!errors.isEmpty()) {
+      // There are errors. Send the data back for correction
+      res.status(400).json({ category, errors: errors.array() });
+      return;
+    } else {
+      // Data from from is valid
+      // Check if category with the same name already exists
+      Category.findOne({ name: req.body.name }).exec((err, found_cat) => {
+        if (err) {
+          return next(err);
+        }
+        if (found_cat) {
+          // Category exisits send back its data
+          res.json({ category: found_cat });
+        } else {
+          category.save((err) => {
+            if (err) {
+              return next(err);
+            }
+            // Category saved, Send its data back
+            res.status(201).json({
+              category,
+              msg: "Category Saved",
+            });
+          });
+        }
       });
     }
   },
@@ -125,7 +186,7 @@ exports.get_store_info = (req, res, next) => {
         return next(err);
       }
       // Success so render
-      res.json(results)
+      res.json(results);
     }
   );
 };
