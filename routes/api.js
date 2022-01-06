@@ -30,4 +30,10 @@ router.put("/plants/edit", api_controller.edit_plant_id);
 // GET Store Info
 router.get("/store/info", api_controller.get_store_info);
 
+// DELETE Plant by ID
+router.delete("/plants/delete", api_controller.plant_delete);
+
+// DELETE Category by ID
+router.delete("/plants/categories/delete", api_controller.category_delete);
+
 module.exports = router;

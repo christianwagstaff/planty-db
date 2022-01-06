@@ -217,7 +217,7 @@ exports.edit_plant_id = [
           // Success Send back msg
           res.json({ msg: "Updated Plant", newPlant });
         }
-);
+      );
     }
   },
 ];
@@ -343,4 +343,37 @@ exports.get_store_info = (req, res, next) => {
       res.json(results);
     }
   );
+};
+
+// Handle Plant delete on DELETE
+exports.plant_delete = (req, res, next) => {
+  Plant.findByIdAndDelete(req.body._id).exec((err, result) => {
+    if (err) {
+      return next(err);
+    }
+    // Success,
+    res.json({ msg: "Plant Deleted" });
+  });
+};
+
+//Handle Category delete on DELETE
+exports.category_delete = (req, res, next) => {
+  Plant.find({ category: req.body._id }).exec((err, result) => {
+    if (err) {
+      return next(err);
+    }
+    if (result.length > 0) {
+      // Category has plants, return a 400 error
+      res.status(400).json({ msg: "Plants still depend on this book" });
+    } else {
+      // Category has no plants: Delete obj and send back message
+      Category.findByIdAndDelete(req.body._id).exec((err, result) => {
+        if (err) {
+          return next(err);
+        }
+        // Success
+        res.json({ msg: "Category successfully deleted" });
+      });
+    }
+  });
 };
