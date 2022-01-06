@@ -140,6 +140,88 @@ exports.create_plant = [
   },
 ];
 
+// Edit Plant By ID
+exports.edit_plant_id = [
+  // Convert the category to an array
+  (req, res, next) => {
+    if (!(req.body.category instanceof Array)) {
+      if (typeof req.body.category === "undefined") {
+        req.body.category = [];
+      } else {
+        req.body.category = new Array(req.body.category);
+      }
+    }
+    next();
+  },
+
+  // Validate and sanitize fields
+  body("name")
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage("Name must be specified"),
+  body("description")
+    .trim()
+    .isLength({ min: 1 })
+    .escape()
+    .withMessage("Description must be specified"),
+  body("price").trim().isNumeric().isLength({ min: 1 }),
+  body("stock").trim().isNumeric().isLength({ min: 0 }),
+  body("category.*").escape(),
+
+  // Process request after validation and sanitization
+  (req, res, next) => {
+    const errors = validationResult(req);
+
+    // Create a Plant obj with escaped and sanitized data
+    const plant = new Plant({
+      name: req.body.name,
+      description: req.body.description,
+      category: req.body.category,
+      price: req.body.price,
+      stock: req.body.stock,
+      _id: req.body._id, // Required so a new ID is not issued
+    });
+
+    if (!errors.isEmpty()) {
+      // There are errors
+      // Send the data back for correction
+      Category.find({}, "name").exec((err, categories) => {
+        if (err) {
+          return next(err);
+        }
+        // Mark selected categories as checked
+        for (let cat of categories) {
+          if (plant.category.indexOf(cat._id) > -1) {
+            cat.checked = "true";
+          }
+        }
+        res.json({
+          name: req.body.name,
+          plant,
+          categories,
+          errors: errors.array(),
+        });
+      });
+      return;
+    } else {
+      // Data from form is valid. Save plant
+      Plant.findByIdAndUpdate(
+        req.body._id,
+        plant,
+        {},
+        function (err, newPlant) {
+          if (err) {
+            return next(err);
+          }
+          // Success Send back msg
+          res.json({ msg: "Updated Plant", newPlant });
+        }
+);
+    }
+  },
+];
+
 // Create new Category on POST
 exports.create_category = [
   // Validate and sanitize fields
@@ -212,6 +294,7 @@ exports.edit_category_id = [
       _id: req.body._id, // Necessay so the old ID is not replaced
     });
     if (!errors.isEmpty()) {
+      console.log(errors);
       // There are errors. Send the data back for correction
       res.status(400).json({ category, errors: errors.array() });
       return;
@@ -236,7 +319,7 @@ exports.edit_category_id = [
                 return next(err);
               }
               // Success Send back msg
-              res.json({msg: "Updated Category" });
+              res.json({ msg: "Updated Category", newCategory });
             }
           );
         }
