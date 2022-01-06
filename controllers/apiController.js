@@ -46,6 +46,23 @@ exports.get_plant_id = (req, res, next) => {
     });
 };
 
+// Get Specific Category
+exports.get_category_id = (req, res, next) => {
+  Category.findById(req.params.id).exec((err, cat) => {
+    if (err) {
+      return next(err);
+    }
+    if (cat == null) {
+      // No Results
+      const err = new Error("No Results");
+      err.status = 404;
+      return next(err);
+    }
+    // Success - Return Category Details
+    res.json(cat);
+  });
+};
+
 // Create a new plant on POST
 exports.create_plant = [
   // Convert the category to an array
@@ -168,6 +185,60 @@ exports.create_category = [
               msg: "Category Saved",
             });
           });
+        }
+      });
+    }
+  },
+];
+
+// Edit Category by ID
+exports.edit_category_id = [
+  // Validate and sanitize fields
+  body("name", "Category Name Required").trim().isLength({ min: 1 }).escape(),
+  body("description", "Description is Required")
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+
+  // Process request after validation and sanitization
+  (req, res, next) => {
+    // Extract the validation errors from a request
+    const errors = validationResult(req);
+
+    // create a Category obj with escaped and trimmed data
+    const category = new Category({
+      name: req.body.name,
+      description: req.body.description,
+      _id: req.body._id, // Necessay so the old ID is not replaced
+    });
+    if (!errors.isEmpty()) {
+      // There are errors. Send the data back for correction
+      res.status(400).json({ category, errors: errors.array() });
+      return;
+    } else {
+      // Data from from is valid
+      // Check if category with the same name already exists
+      Category.findOne({ name: req.body.name }).exec((err, found_cat) => {
+        if (err) {
+          return next(err);
+        }
+        if (found_cat && String(found_cat._id) !== String(category._id)) {
+          // Category exists, send its details back
+          res.json(found_cat);
+        } else {
+          // Data is valid, update the record
+          Category.findByIdAndUpdate(
+            req.body._id,
+            category,
+            {},
+            function (err, newCategory) {
+              if (err) {
+                return next(err);
+              }
+              // Success Send back msg
+              res.json({msg: "Updated Category" });
+            }
+          );
         }
       });
     }
